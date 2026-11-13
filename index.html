@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Aurinkokello">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="application-name" content="Aurinkokello">
+<meta name="theme-color" content="#14120e">
+<link rel="apple-touch-icon" sizes="180x180" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAADQklEQVR42u3dO47cMBAFwD6BA2OP4PtfwQdzspmxgA0b2FmKr7sLeMFkM2zVUOJHUr19/yby15QSCBwCh8AhcAgcAofAIXAIHAKHCBwCh8AhcAgcAofAIXAIHAKHCBwCh8AhcBzKr58//oyywAEHHHDAAQcccMABBxxwwAEHHHDAAQcccMDBBxlwwAEHHHDAAQcc23HcPSQ5OHJoVtofdzmOqK6r0rp0OHJ8VNrJ/lZRAn/DdR+VJuNWUdJ+QIKPCpRxpSi/v/Tit6f5CO05Vo0nY4tQ4dXZLMMF6Wof4a0uldLeHtPne3y0aGl1qdoSHNZWtvvo0sBSPk3rt2Q/0kevRlXHatrGDMfBmv57UvKxb7TZJ2hV7BMmvvCItuv/ql2ffJHF64e215mxep2zE1i8SKTRNdPkDcZHWWxY/SksEFmE44qMkT6KDD7m4/jag4rIHBxf/o/XhQzBceJ04BQDBxyjcRy6kHR92h7HuVGG8UtvHEeHoMa3cMAxEcfpySuTY3DAMQ7HA9PeZtbhgGMWjmcWzCzLwQHHIByPLbVb04cDDjjg2LD7fAAOu8/hgAMOOOCAAw44juG4cqP6QhyP4auof3avu14//fPulhEOOGbhaHe//CEcObdU6Tn0HHA8/uAeOOaMVhrdbN0Sx/g76M1zwAEHHHDAAQcccNgJRgYccMABBxx8uG8FDjj4cK8sHHB4PgcZcMDhmWBkwAEHHBN89C2vJxiTMRdHso/uhYUDjtE4Mn0MqKo3NZGxAEcIkUnF9HZIMjbhePNeWThyiEwtoHfZe5d9fxwv/k1DeotenU11PEHcPdFcbwUc/zmiz1+OBLZiO45JF4Dt2lLtxhojB1BwbJfRrmmlfBrYBseSiaYWzawWJduDI6qlpV7am45j4cpFfqtLjbQ9FMfO1c4uRShF+fhjPn7gI7Tn6Lu2N2lwW4GdauuF3wGlyL0g7b4rYEApcoeycBjKxu2fy+nPTYKN3WxmgzEccMABh8ABBxxw7N7GDAcccMABBxxwwAEHHHDAAQcccMABBxxwwAEHHAKHwCFwCBwCh8AhcIjAIXAIHAKHwCFwCBwCh8AhcIjAIXAIHAKHwCFwSGjeAbNSoIE6dcFrAAAAAElFTkSuQmCC">
+<title>Aurinkokello</title>
+<style>
+:root{--bg:#f6f3ec;--fg:#1d1b16;--mut:#7a7466;--sun:#d97706;--card:#ece7da;--line:#c9c2b0;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14120e;--fg:#f1ece0;--mut:#9a9381;--sun:#fbbf24;--card:#201d16;--line:#3a3629}}
+:root[data-theme="dark"]{--bg:#14120e;--fg:#f1ece0;--mut:#9a9381;--sun:#fbbf24;--card:#201d16;--line:#3a3629}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,"SF Pro Text",system-ui,sans-serif;text-align:center;padding:12px 16px 24px}
+h1{font-size:15px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:8px 0}
+svg{width:min(86vw,340px);height:auto;display:block;margin:6px auto}
+.row{display:flex;gap:10px;margin:10px auto;max-width:380px}
+.card{flex:1;background:var(--card);border-radius:14px;padding:12px 8px}
+.card small{display:block;color:var(--mut);font-size:12px;margin-bottom:2px}
+.t{font-size:30px;font-variant-numeric:tabular-nums;font-weight:600}
+.sun .t{color:var(--sun)}
+.info{max-width:380px;margin:12px auto;font-size:14px;color:var(--mut);line-height:1.6}
+.info b{color:var(--fg)}
+input{width:90px;font-size:16px;padding:6px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--fg);text-align:center}
+button{font-size:15px;padding:7px 12px;border-radius:8px;border:0;background:var(--sun);color:#1d1b16;font-weight:600}
+</style>
+</head>
+<body>
+<h1>Kello ja aurinkoaika</h1>
+<svg viewBox="-150 -150 300 300" aria-label="Analoginen kello">
+  <circle r="144" fill="var(--card)" stroke="var(--line)" stroke-width="2"/>
+  <g id="ticks"></g>
+  <g id="nums" font-size="18" text-anchor="middle" fill="var(--fg)"></g>
+  <line id="sh" stroke="var(--sun)" stroke-width="7" stroke-linecap="round"/>
+  <line id="sm" stroke="var(--sun)" stroke-width="4" stroke-linecap="round"/>
+  <line id="ch" stroke="var(--fg)" stroke-width="6" stroke-linecap="round"/>
+  <line id="cm" stroke="var(--fg)" stroke-width="3" stroke-linecap="round"/>
+  <line id="cs" stroke="var(--mut)" stroke-width="1.5" stroke-linecap="round"/>
+  <circle r="6" fill="var(--fg)"/>
+</svg>
+<div class="row">
+  <div class="card"><small>Normaaliaika</small><div class="t" id="ct">--:--:--</div></div>
+  <div class="card sun"><small>Aurinkoaika</small><div class="t" id="st">--:--:--</div></div>
+</div>
+<div class="info">
+  Ero: <b id="diff">–</b><br>
+  Aika-yhtälö: <b id="eot">–</b> · Pituusaste: <b id="lonv">–</b><br>
+  Aurinko korkeimmillaan (normaaliajassa): <b id="noon">–</b>
+</div>
+<div class="info">
+  <span id="src"></span><br>
+  Pituusaste (°, itä +): <input id="lon" type="number" step="0.01" inputmode="decimal"> <button id="set">Aseta</button>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+let lon=24.94, auto=false;
+try{const s=localStorage.getItem('lon');if(s!==null&&!isNaN(+s))lon=+s}catch(e){}
+$('lon').value=lon;
+function setSrc(t){$('src').textContent=t}
+setSrc('Käytetään pituusastetta '+lon.toFixed(2)+'°. Haetaan sijaintia…');
+if(navigator.geolocation){
+  navigator.geolocation.getCurrentPosition(p=>{lon=p.coords.longitude;auto=true;$('lon').value=lon.toFixed(2);setSrc('Sijainti haettu GPS:llä.')},
+  ()=>setSrc('Sijaintia ei saatu – syötä pituusaste käsin.'),{timeout:8000,maximumAge:600000});
+}else setSrc('Syötä pituusaste käsin.');
+$('set').onclick=()=>{const v=parseFloat($('lon').value);if(!isNaN(v)&&v>=-180&&v<=180){lon=v;auto=false;setSrc('Käytetään antamaasi pituusastetta.');try{localStorage.setItem('lon',v)}catch(e){}}};
+
+// kellotaulu
+let tk='',nm='';
+for(let i=0;i<60;i++){const a=i*6*Math.PI/180,r1=i%5?136:128;
+  tk+=`<line x1="${Math.sin(a)*r1}" y1="${-Math.cos(a)*r1}" x2="${Math.sin(a)*140}" y2="${-Math.cos(a)*140}" stroke="var(--mut)" stroke-width="${i%5?1:2.5}"/>`}
+for(let h=1;h<=12;h++){const a=h*30*Math.PI/180;nm+=`<text x="${Math.sin(a)*108}" y="${-Math.cos(a)*108+6}">${h}</text>`}
+$('ticks').innerHTML=tk;$('nums').innerHTML=nm;
+function hand(id,deg,len){const a=deg*Math.PI/180;const e=$(id);e.setAttribute('x2',Math.sin(a)*len);e.setAttribute('y2',-Math.cos(a)*len)}
+const p2=n=>String(n).padStart(2,'0');
+const hms=(h,m,s)=>p2(h)+':'+p2(m)+':'+p2(s);
+const fmtMin=m=>{const s=Math.abs(m),mm=Math.floor(s),ss=Math.round((s-mm)*60);return (m<0?'−':'+')+mm+' min '+ss+' s'};
+
+function eotMin(d){
+  const n=Math.floor((Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate())-Date.UTC(d.getUTCFullYear(),0,0))/864e5);
+  const B=2*Math.PI*(n-81)/365;
+  return 9.87*Math.sin(2*B)-7.53*Math.cos(B)-1.5*Math.sin(B);
+}
+function tick(){
+  const now=new Date(), e=eotMin(now);
+  const solar=new Date(now.getTime()+lon/15*36e5+e*6e4);
+  const ch=now.getHours(),cm=now.getMinutes(),cs=now.getSeconds();
+  const sh=solar.getUTCHours(),sm=solar.getUTCMinutes(),ss=solar.getUTCSeconds();
+  $('ct').textContent=hms(ch,cm,cs);
+  $('st').textContent=hms(sh,sm,ss);
+  hand('ch',(ch%12+cm/60)*30,65);hand('cm',(cm+cs/60)*6,100);hand('cs',cs*6,115);
+  hand('sh',(sh%12+sm/60)*30,48);hand('sm',(sm+ss/60)*6,88);
+  let dm=((sh*3600+sm*60+ss)-(ch*3600+cm*60+cs))/60;
+  if(dm>720)dm-=1440;if(dm<-720)dm+=1440;
+  $('diff').textContent='aurinkoaika '+fmtMin(dm).replace('+','+')+' normaaliaikaan nähden';
+  $('eot').textContent=fmtMin(e);
+  $('lonv').textContent=lon.toFixed(2)+'° '+(lon>=0?'E':'W');
+  // aurinkokeskipäivä normaaliajassa
+  const noonMs=Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate(),12)-lon/15*36e5-e*6e4;
+  const nd=new Date(noonMs);
+  $('noon').textContent=p2(nd.getHours())+':'+p2(nd.getMinutes())+':'+p2(nd.getSeconds());
+}
+tick();setInterval(tick,250);
+</script>
+</body>
+</html>
