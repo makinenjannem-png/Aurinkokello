@@ -33,6 +33,8 @@ button{font-size:15px;padding:7px 12px;border-radius:8px;border:0;background:var
 .chart h2{font-size:13px;font-weight:600;color:var(--mut);margin:2px 0 4px}
 .chart svg{width:100%;margin:0}
 .chart p{font-size:12px;color:var(--mut);margin:2px 8px 6px;line-height:1.4}
+#gl{width:min(80vw,300px);height:auto;display:block;margin:4px auto;touch-action:pan-y;cursor:grab}
+.chart button{font-size:13px;padding:6px 10px;margin:0 3px}
 </style>
 </head>
 <body>
@@ -66,18 +68,25 @@ button{font-size:15px;padding:7px 12px;border-radius:8px;border:0;background:var
   <span id="src"></span><br>
   Pituusaste (°, itä +): <input id="lon" type="number" step="0.01" inputmode="decimal"> <button id="set">Aseta</button>
 </div>
+<div class="chart">
+  <h2>Maapallo juuri nyt</h2>
+  <canvas id="gl" width="360" height="360" aria-label="Maapallo ja päivän ja yön raja"></canvas>
+  <p id="gsun"></p>
+  <p>Punainen piste on sijaintisi. Keltainen viiva on auringon reitti tänään: sen kohdalla aurinko on keskipäivällä suoraan yläpuolella. Verkko näyttää leveys- ja pituuspiirit 15 asteen välein. Pyöritä palloa sormella vaakasuunnassa. Kuva päivittyy itsestään.</p>
+  <p><button id="g1">Keskitä sijaintiin</button><button id="g2">Keskitä aurinkoon</button></p>
+</div>
 <script>
 const $=id=>document.getElementById(id);
-let lon=24.94, auto=false;
+let lon=24.94, lat=60.17, auto=false;
 try{const s=localStorage.getItem('lon');if(s!==null&&!isNaN(+s))lon=+s}catch(e){}
 $('lon').value=lon;
 function setSrc(t){$('src').textContent=t}
 setSrc('Käytetään pituusastetta '+lon.toFixed(2)+'°. Haetaan sijaintia…');
 if(navigator.geolocation){
-  navigator.geolocation.getCurrentPosition(p=>{lon=p.coords.longitude;auto=true;$('lon').value=lon.toFixed(2);setSrc('Sijainti haettu GPS:llä.')},
+  navigator.geolocation.getCurrentPosition(p=>{lon=p.coords.longitude;lat=p.coords.latitude;auto=true;if(!dragged)vl=lon;renderGlobe();$('lon').value=lon.toFixed(2);setSrc('Sijainti haettu GPS:llä.')},
   ()=>setSrc('Sijaintia ei saatu – syötä pituusaste käsin.'),{timeout:8000,maximumAge:600000});
 }else setSrc('Syötä pituusaste käsin.');
-$('set').onclick=()=>{const v=parseFloat($('lon').value);if(!isNaN(v)&&v>=-180&&v<=180){lon=v;auto=false;setSrc('Käytetään antamaasi pituusastetta.');try{localStorage.setItem('lon',v)}catch(e){}}};
+$('set').onclick=()=>{const v=parseFloat($('lon').value);if(!isNaN(v)&&v>=-180&&v<=180){lon=v;auto=false;if(!dragged)vl=lon;renderGlobe();setSrc('Käytetään antamaasi pituusastetta.');try{localStorage.setItem('lon',v)}catch(e){}}};
 
 // kellotaulu
 let tk='',nm='';
@@ -131,6 +140,67 @@ function drawCurve(){
   g+=`<text x="${L-5}" y="${T-2}" text-anchor="end" font-size="9" fill="var(--mut)">min</text>`;
   $('curve').innerHTML=g;
 }
+const GP={na:[-168,66,-162,70,-156,71.3,-141,69.6,-128,70,-115,68.5,-95,72,-85,69,-82,67,-90,64,-94,59,-92,57,-82,55,-79,52,-78,58,-77,62,-70,60,-65,60,-62,57,-56,52,-60,47,-66,45,-70,43,-70,41.5,-75,38,-76,35,-81,31,-80,26,-81,25,-83,29,-90,30,-94,29,-97,26,-97.5,22,-95,18.5,-91,18.5,-90,21,-87,21,-88,16,-83.5,15,-83.5,11,-79.5,9,-77.5,8.5,-80,7.5,-85,10,-87.5,13,-92,14.5,-96,15.7,-105,19.5,-105.5,23,-110,26,-114,31,-117,32.5,-121,35,-123.5,38.5,-124,42,-124,47,-123,49,-127,51,-130,55,-135,58,-140,60,-148,60.5,-152,59,-158,56.5,-163,55,-158,58.5,-162,59.5,-165,61.5,-166,64,-161,64.5],
+gr:[-73,78,-60,82,-30,83.5,-18,80,-20,74,-22,70,-32,68,-42,60,-48,61,-53,67,-56,72,-66,76],
+sa:[-77,8,-72,12,-62,10.5,-52,5,-50,0,-44,-2.5,-35,-5,-35,-9,-39,-14,-39,-18,-43,-23,-48,-26,-48.5,-28,-53,-34,-58,-35,-57,-38,-62,-39,-65,-41,-65,-45,-67.5,-46.5,-69,-51,-68.5,-53,-71,-54,-74,-52,-75,-47,-73,-42,-73.5,-37,-71.5,-30,-70.5,-18,-76,-14,-81,-6,-80,-2,-80.5,1,-77.5,4],
+af:[-17,21,-16,26,-13,28,-9.5,30,-6,35.8,10,37,11,33,20,31,25,32,32,31,34.5,28,37,21,39,16,43,12,51,12,51,10,48,5,42,-1,40,-4,39,-9,40.5,-15,35,-21,35.5,-24,33,-26,32.5,-29,28,-33,20,-35,18,-33,15,-27,12,-18,13.5,-12,12,-5,9,-1,9.5,4,5,6,-4,5,-8,4.5,-13,8,-17,14.5],
+eu:[-9,37,-9,43,-1.5,43.5,-1,46,-4.5,48.5,2,51,4,52,8,54,8.5,57,10.5,57.5,10,54.5,14,54,20,54.5,21,57,24,57.5,24,59.5,30,60,23,60,21.5,61,25,65,21,65,17.5,62.5,18.5,60,16,56,12.5,56,11,59,8,58,5,59,5,62,12,66,16,69,25,71,31,70,40,67,41,66.5,44,68,54,68.5,60,69,68,69,66,71,73,72.5,80,73,87,75,100,77,113,74,129,73,140,72,160,70,170,70,180,69,180,65,178,64.5,170,60,163,60,163,57,156,51,156,57,160,61,150,59.5,143,59,137,54,141,52,140,48,135,43,130,42.5,129,38,129,35,126.5,34.5,126,37.5,125,39.5,121.5,39,122,41,118,39,119,37,122,37,120,34,122,30,120,26,116,22.5,110,21,108,21.5,106,19,108,14,109,11.5,105,9,104.5,10.5,100,13,99,9,101,6.5,103.5,1.5,100.5,3.5,98,8,98,16,94.5,16,94,19,91.5,22.5,89,22,87,21,80,15.5,80,10,77,8,73,16,72.5,21,67,24.5,62,25,57,26,55,26.5,51,28,48,30,50.5,25,51.5,24,56,26,59,22.5,55,17,52,16,43,12.5,43,16,39,21.5,35,28,34.8,29.5,34.5,31.2,36,35.5,36,36.7,30,36.2,27,37,26.5,40.2,23,40,24,38,22.5,36.5,21,38,19.5,41,15,45,13.5,45.5,12.3,45.3,16,41.5,18.5,40,16,38,15.5,40,12,42,9,44.5,6,43,3,43,3,42,0,39,-0.5,38,-2,36.7,-5.5,36],
+au:[114,-22,122,-18,126,-14,131,-12,136,-12,137,-16,141,-17,142,-11,146,-19,153,-26,153,-30,150,-37,146,-39,141,-38,138,-35,135,-34,131,-31.5,124,-33.5,118,-35,115,-34,115,-30,113.5,-26],
+uk:[-5.5,50,1.5,51,1.7,53,-2,56,-2,57.7,-5,58.6,-6,56.5,-5,54.5,-3,53.5,-5,52],
+jp:[130,31,132,34,135,34,140,35,142,39,142,42,145,43.5,141.5,45.4,140,41,139.5,38,136,36.5,132,35.5,130,33.5],
+mg:[49.5,-12,50.5,-15.5,47,-25,44,-24.5,43.5,-21,44.5,-16,47,-14.5],
+bo:[109,1.5,113,3,117,7,119,5,118,1,116,-4,110,-3],
+nz:[172.5,-34.5,178,-38,175,-41.5,170,-46,167,-46,171,-42],
+is:[-24,65.5,-22,66.5,-15,66.3,-14,64.5,-19,63.4,-22.5,64],
+an:[-180,-72,180,-72,180,-90,-180,-90]};
+const LC=document.createElement('canvas');LC.width=720;LC.height=360;
+const lx=LC.getContext('2d');lx.fillStyle='#000';
+for(const k in GP){const a=GP[k];lx.beginPath();for(let i=0;i<a.length;i+=2){const x=(a[i]+180)*2,y=(90-a[i+1])*2;i?lx.lineTo(x,y):lx.moveTo(x,y)}lx.closePath();lx.fill()}
+const LM=lx.getImageData(0,0,720,360).data;
+let vl=lon,dragged=false;
+function sunPos(d){
+  const N=(d.getTime()-Date.UTC(d.getUTCFullYear(),0,1))/864e5+1;
+  const uh=d.getUTCHours()+d.getUTCMinutes()/60+d.getUTCSeconds()/3600;
+  return {dec:-23.44*Math.cos(2*Math.PI/365*(N+10)),lon:-15*(uh-12)-eotMin(d)/4};
+}
+const wrap=x=>((x%360)+540)%360-180;
+const ll=(a,p,n)=>Math.abs(a).toFixed(1)+'°'+(a>=0?p:n);
+function renderGlobe(){
+  const cv=$('gl'),S=cv.width,c=cv.getContext('2d'),R=S/2-4,sp=sunPos(new Date()),D=Math.PI/180;
+  const p0=25*D,l0=vl*D,sd=sp.dec*D,sl=sp.lon*D;
+  const sp0=Math.sin(p0),cp0=Math.cos(p0),ssd=Math.sin(sd),csd=Math.cos(sd);
+  const img=c.createImageData(S,S),o=img.data;
+  for(let j=0;j<S;j++)for(let i=0;i<S;i++){
+    const x=(i+.5-S/2)/R,y=(S/2-j-.5)/R,r2=x*x+y*y;if(r2>1)continue;
+    const rho=Math.sqrt(r2),cc=Math.asin(rho),sc=Math.sin(cc),c2=Math.cos(cc);
+    let la,lo;
+    if(rho<1e-9){la=p0;lo=l0}else{la=Math.asin(c2*sp0+y*sc*cp0/rho);lo=l0+Math.atan2(x*sc,rho*cp0*c2-y*sp0*sc)}
+    const cz=Math.sin(la)*ssd+Math.cos(la)*csd*Math.cos(lo-sl);
+    let f=(cz+.1)/.22;f=f<0?0:f>1?1:f;f=f*f*(3-2*f);
+    const tx=Math.min(719,((wrap(lo/D)+180)*2)|0),ty=Math.min(359,((90-la/D)*2)|0);
+    const a=LM[(ty*720+tx)*4+3]/255;
+    const L=(.3+.7*f*(.75+.25*Math.max(0,cz)))*(1-.3*r2),k=(j*S+i)*4;
+    o[k]=(22+56*a)*L;o[k+1]=(70+70*a)*L;o[k+2]=(140-68*a)*L;o[k+3]=255;
+  }
+  c.putImageData(img,0,0);
+  const mk=(la,lo,fn)=>{const dl=lo*D-l0,ph=la*D;if(sp0*Math.sin(ph)+cp0*Math.cos(ph)*Math.cos(dl)<=0)return;fn(S/2+R*Math.cos(ph)*Math.sin(dl),S/2-R*(cp0*Math.sin(ph)-sp0*Math.cos(ph)*Math.cos(dl)))};
+  const dot=(col,r)=>(x,y)=>{c.beginPath();c.arc(x,y,r,0,7);c.fillStyle=col;c.fill();c.lineWidth=2.5;c.strokeStyle='#fff';c.stroke()};
+  const pr=(la,lo)=>{const dl=lo*D-l0,ph=la*D;return[S/2+R*Math.cos(ph)*Math.sin(dl),S/2-R*(cp0*Math.sin(ph)-sp0*Math.cos(ph)*Math.cos(dl)),sp0*Math.sin(ph)+cp0*Math.cos(ph)*Math.cos(dl)]};
+  const ln=(pts,col,w)=>{c.beginPath();let on=false;for(const[la,lo]of pts){const[x,y,v]=pr(la,lo);if(v>0){on?c.lineTo(x,y):c.moveTo(x,y);on=true}else on=false}c.strokeStyle=col;c.lineWidth=w;c.stroke()};
+  for(let a=-75;a<=75;a+=15){const p=[];for(let o=-180;o<=180;o+=3)p.push([a,o]);ln(p,'rgba(255,255,255,.3)',a?1:1.6)}
+  for(let o=-180;o<180;o+=15){const p=[];for(let a=-90;a<=90;a+=3)p.push([a,o]);ln(p,'rgba(255,255,255,.3)',o?1:1.6)}
+  const sun=[];for(let o=-180;o<=180;o+=2)sun.push([sp.dec,o]);
+  ln(sun,'rgba(0,0,0,.4)',5.5);ln(sun,'#fbbf24',3);
+  mk(lat,lon,dot('#ef4444',5));
+  $('gsun').textContent='Auringon kohdalla: '+ll(sp.dec,'N','S')+', '+ll(wrap(sp.lon),'E','W');
+}
+const gl=$('gl');let gx=null;
+gl.addEventListener('pointerdown',e=>{gx=e.clientX;gl.setPointerCapture(e.pointerId)});
+gl.addEventListener('pointermove',e=>{if(gx===null)return;vl-=(e.clientX-gx)*.5;gx=e.clientX;dragged=true;renderGlobe()});
+for(const t of ['pointerup','pointercancel'])gl.addEventListener(t,()=>{gx=null});
+$('g1').onclick=()=>{dragged=false;vl=lon;renderGlobe()};
+$('g2').onclick=()=>{dragged=true;vl=sunPos(new Date()).lon;renderGlobe()};
+renderGlobe();setInterval(renderGlobe,15000);
 drawCurve();tick();setInterval(tick,250);setInterval(drawCurve,60000);
 </script>
 </body>
