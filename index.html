@@ -29,6 +29,10 @@ svg{width:min(86vw,340px);height:auto;display:block;margin:6px auto}
 .info b{color:var(--fg)}
 input{width:90px;font-size:16px;padding:6px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--fg);text-align:center}
 button{font-size:15px;padding:7px 12px;border-radius:8px;border:0;background:var(--sun);color:#1d1b16;font-weight:600}
+.chart{max-width:380px;margin:14px auto 0;background:var(--card);border-radius:14px;padding:10px 6px 6px}
+.chart h2{font-size:13px;font-weight:600;color:var(--mut);margin:2px 0 4px}
+.chart svg{width:100%;margin:0}
+.chart p{font-size:12px;color:var(--mut);margin:2px 8px 6px;line-height:1.4}
 </style>
 </head>
 <body>
@@ -52,6 +56,11 @@ button{font-size:15px;padding:7px 12px;border-radius:8px;border:0;background:var
   Ero: <b id="diff">–</b><br>
   Aika-yhtälö: <b id="eot">–</b> · Pituusaste: <b id="lonv">–</b><br>
   Aurinko korkeimmillaan (normaaliajassa): <b id="noon">–</b>
+</div>
+<div class="chart">
+  <h2>Aurinkoaika vs. Suomen aika, Helsinki</h2>
+  <svg id="curve" viewBox="0 0 360 200" aria-label="Aurinkoajan ja normaaliajan ero vuoden aikana"></svg>
+  <p>Aurinkoaika Helsingin pituusasteella (24,94°E) miinus Suomen virallinen aika. Kesäaika näkyy noin tunnin hyppäyksenä keväällä ja syksyllä. Keltainen piste on tämä päivä.</p>
 </div>
 <div class="info">
   <span id="src"></span><br>
@@ -105,7 +114,24 @@ function tick(){
   const nd=new Date(noonMs);
   $('noon').textContent=p2(nd.getHours())+':'+p2(nd.getMinutes())+':'+p2(nd.getSeconds());
 }
-tick();setInterval(tick,250);
+const MON=['T','H','M','H','T','K','H','E','S','L','M','J'],MS=[0,31,59,90,120,151,181,212,243,273,304,334];
+function drawCurve(){
+  const W=360,H=200,L=34,R=10,T=12,B=24,now=new Date(),yr=now.getUTCFullYear(),YM=10,Y0=-100;
+  const X=d=>L+(W-L-R)*d/365,Y=m=>T+(H-T-B)*(YM-m)/(YM-Y0);
+  const hel=d=>{const hh=+new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Helsinki',hour:'numeric',hourCycle:'h23'}).format(d),off=(hh-d.getUTCHours()+24)%24;return eotMin(d)+24.94*4-off*60};
+  let g='',path='';
+  for(const v of [0,-20,-40,-60,-80,-100]){g+=`<line x1="${L}" y1="${Y(v)}" x2="${W-R}" y2="${Y(v)}" stroke="${v?'var(--line)':'var(--mut)'}" stroke-width="${v?1:1.5}"/><text x="${L-5}" y="${Y(v)+4}" text-anchor="end" font-size="10" fill="var(--mut)">${v>0?'+':''}${v}</text>`}
+  MS.forEach((d,i)=>{g+=`<line x1="${X(d)}" y1="${T}" x2="${X(d)}" y2="${H-B}" stroke="var(--line)" stroke-width=".5"/><text x="${X(d+15)}" y="${H-8}" text-anchor="middle" font-size="10" fill="var(--mut)">${MON[i]}</text>`});
+  for(let d=0;d<=365;d++){const e=hel(new Date(Date.UTC(yr,0,d+1,12)));path+=(d?'L':'M')+X(d).toFixed(1)+' '+Y(e).toFixed(1)}
+  const fill=path+`L${X(365)} ${Y(0)}L${X(0)} ${Y(0)}Z`;
+  const day=(now.getTime()-Date.UTC(yr,0,1))/864e5,e0=hel(now),mx=X(day),my=Y(e0);
+  g+=`<path d="${fill}" fill="var(--sun)" fill-opacity=".18"/><path d="${path}" fill="none" stroke="var(--sun)" stroke-width="2.5"/>`;
+  g+=`<line x1="${mx}" y1="${T}" x2="${mx}" y2="${H-B}" stroke="var(--fg)" stroke-width="1" stroke-dasharray="3 3"/><circle cx="${mx}" cy="${my}" r="5.5" fill="var(--sun)" stroke="var(--fg)" stroke-width="2"/>`;
+  g+=`<text x="${mx>W/2?mx-9:mx+9}" y="${my+(e0>0?-9:16)}" text-anchor="${mx>W/2?'end':'start'}" font-size="12" font-weight="600" fill="var(--fg)">${(e0>0?'+':'−')+Math.abs(e0).toFixed(1)} min</text>`;
+  g+=`<text x="${L-5}" y="${T-2}" text-anchor="end" font-size="9" fill="var(--mut)">min</text>`;
+  $('curve').innerHTML=g;
+}
+drawCurve();tick();setInterval(tick,250);setInterval(drawCurve,60000);
 </script>
 </body>
 </html>
