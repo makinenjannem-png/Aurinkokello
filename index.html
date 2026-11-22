@@ -73,8 +73,8 @@ button{font-size:15px;padding:7px 12px;border-radius:8px;border:0;background:var
   <h2>Maapallo juuri nyt</h2>
   <canvas id="gl" width="360" height="360" aria-label="Maapallo ja päivän ja yön raja"></canvas>
   <p id="gsun"></p>
-  <details><summary>Selitykset</summary><p id="gtx">Punainen piste: sijaintisi. Keltainen viiva: auringon reitti tänään. Piirit 15° välein; päiväntasaajan luvut: aikaero Greenwichiin (h). Pyöritä sormella. Lähennä +-napilla tai nipistämällä.</p></details>
-  <p><button id="z1" aria-label="Loitonna">−</button><button id="z2" aria-label="Lähennä">+</button><button id="g1">Keskitä sijaintiin</button><button id="g2">Keskitä aurinkoon</button><button id="g3" disabled>Aikavyöhykkeet</button></p>
+  <details><summary>Selitykset</summary><p id="gtx">Punainen piste: sijaintisi. Keltainen vaakaviiva: auringon reitti tänään; pystyviiva: aurinkokeskipäivä (12:00 aurinkoaika). Piirit 15° välein; päiväntasaajan luvut: aikaero Greenwichiin (h). Pyöritä sormella. Lähennä +-napilla tai nipistämällä.</p></details>
+  <p><button id="z1" aria-label="Loitonna">−</button><button id="z2" aria-label="Lähennä">+</button><button id="g1">Keskitä sijaintiin</button><button id="g3" disabled>Aikavyöhykkeet</button></p>
 </div>
 <script>
 const $=id=>document.getElementById(id);
@@ -202,29 +202,34 @@ function renderGlobe(){
   const dot=(col,r)=>(x,y)=>{c.beginPath();c.arc(x,y,r,0,7);c.fillStyle=col;c.fill();c.lineWidth=2.5;c.strokeStyle='#fff';c.stroke()};
   const pr=(la,lo)=>{const dl=lo*D-l0,ph=la*D;return[S/2+R*Math.cos(ph)*Math.sin(dl),S/2-R*(cp0*Math.sin(ph)-sp0*Math.cos(ph)*Math.cos(dl)),sp0*Math.sin(ph)+cp0*Math.cos(ph)*Math.cos(dl)]};
   const ln=(pts,col,w)=>{c.beginPath();let on=false;for(const[la,lo]of pts){const[x,y,v]=pr(la,lo);if(v>0){on?c.lineTo(x,y):c.moveTo(x,y);on=true}else on=false}c.strokeStyle=col;c.lineWidth=w;c.stroke()};
-  if(!tzOn)for(let a=-75;a<=75;a+=15){const p=[];for(let o=-180;o<=180;o+=3)p.push([a,o]);ln(p,'rgba(255,255,255,.3)',a?1:1.6)}
-  if(!tzOn)for(let o=-180;o<180;o+=15){const p=[];for(let a=-90;a<=90;a+=3)p.push([a,o]);ln(p,'rgba(255,255,255,.3)',o?1:1.6)}
+  if(tzOn)c.setLineDash([2,4]);for(let a=-75;a<=75;a+=15){const p=[];for(let o=-180;o<=180;o+=3)p.push([a,o]);ln(p,a?'rgba(255,255,255,.3)':'rgba(255,255,255,.7)',a?1:2.6)}
+  for(let o=-180;o<180;o+=15){const p=[];for(let a=-90;a<=90;a+=3)p.push([a,o]);ln(p,'rgba(255,255,255,.3)',o?1:1.6)}
+  c.setLineDash([]);
   if(tzOn){c.beginPath();for(const r of RINGS){let on=false;for(const[la,lo]of r){const[x,y,v]=pr(la,lo);if(v>0){on?c.lineTo(x,y):c.moveTo(x,y);on=true}else on=false}}c.lineJoin='round';c.strokeStyle='rgba(0,0,0,.35)';c.lineWidth=2.6;c.stroke();c.strokeStyle='rgba(255,255,255,.85)';c.lineWidth=1.1;c.stroke();
     c.font='600 11px -apple-system,system-ui,sans-serif';c.textAlign='center';c.lineWidth=3;
     for(const[la,lo,sz,t]of ZL){const[x,y,v]=pr(la,lo);if(v<.3||sz*6.2*Z*v<8+t.length*5)continue;c.strokeStyle='rgba(0,0,0,.6)';c.strokeText(t,x,y+4);c.fillStyle='#fff';c.fillText(t,x,y+4)}}
   const sun=[];for(let o=-180;o<=180;o+=2)sun.push([sp.dec,o]);
   if(!tzOn){ln(sun,'rgba(0,0,0,.4)',5.5);ln(sun,'#fbbf24',3)}
+  const nm=[];for(let a=-90;a<=90;a+=3)nm.push([a,sp.lon]);ln(nm,'rgba(0,0,0,.4)',5);ln(nm,'#fbbf24',2.5);
+  {const[x,y,v]=pr(0,sp.lon);if(v>.3){c.font='600 11px -apple-system,system-ui,sans-serif';c.textAlign='center';c.lineWidth=3;c.strokeStyle='rgba(0,0,0,.6)';c.strokeText('12:00',x,y-7);c.fillStyle='#fbbf24';c.fillText('12:00',x,y-7)}}
   c.font=(tzOn?'600 11px ':'10px ')+'-apple-system,system-ui,sans-serif';c.textAlign='center';c.lineJoin='round';c.lineWidth=3;
   if(!tzOn)for(let n=-11;n<=12;n++){const[x,y,v]=pr(0,n*15);if(v<.4)continue;const s=Math.abs(n)===12?'±12':n?(n>0?'+':'−')+Math.abs(n):'0';c.strokeStyle=tzOn?'rgba(0,0,0,.7)':'rgba(0,0,0,.3)';c.strokeText(s,x,y+14);c.fillStyle=tzOn?'#fff':'rgba(255,255,255,.5)';c.fillText(s,x,y+14)}
   mk(lat,lon,dot('#ef4444',5));
   $('gsun').textContent='Auringon kohdalla: '+ll(sp.dec,'N','S')+', '+ll(wrap(sp.lon),'E','W');
 }
-const gl=$('gl'),ptr=new Map();let pd=0;
+const gl=$('gl');let dr=null,pd=0,pin=false;
 const setZ=z=>{Z=Math.max(1,Math.min(8,z));if(Z===1)vt=25;gl.style.touchAction=Z>1?'none':'pan-y';renderGlobe()};
-gl.addEventListener('pointerdown',e=>{ptr.set(e.pointerId,[e.clientX,e.clientY]);gl.setPointerCapture(e.pointerId);if(ptr.size===2){const[a,b]=[...ptr.values()];pd=Math.hypot(a[0]-b[0],a[1]-b[1])}});
-gl.addEventListener('pointermove',e=>{const o=ptr.get(e.pointerId);if(!o)return;
-  if(ptr.size===2){ptr.set(e.pointerId,[e.clientX,e.clientY]);const[a,b]=[...ptr.values()],nd=Math.hypot(a[0]-b[0],a[1]-b[1]);if(pd>0)setZ(Z*nd/pd);pd=nd;return}
-  const k=.5/Z;vl-=(e.clientX-o[0])*k;if(Z>1)vt=Math.max(-80,Math.min(80,vt+(e.clientY-o[1])*k));ptr.set(e.pointerId,[e.clientX,e.clientY]);dragged=true;renderGlobe()});
-for(const t of ['pointerup','pointercancel'])gl.addEventListener(t,e=>{ptr.delete(e.pointerId);pd=0});
+gl.addEventListener('pointerdown',e=>{dr={id:e.pointerId,x:e.clientX,y:e.clientY};try{gl.setPointerCapture(e.pointerId)}catch(x){}});
+gl.addEventListener('pointermove',e=>{if(!dr||dr.id!==e.pointerId||pin)return;const k=.5/Z;vl-=(e.clientX-dr.x)*k;if(Z>1)vt=Math.max(-80,Math.min(80,vt+(e.clientY-dr.y)*k));dr.x=e.clientX;dr.y=e.clientY;dragged=true;renderGlobe()});
+for(const t of ['pointerup','pointercancel'])gl.addEventListener(t,e=>{if(dr&&dr.id===e.pointerId)dr=null});
+const td=e=>Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+gl.addEventListener('touchstart',e=>{if(e.touches.length===2){pin=true;dr=null;pd=td(e)}},{passive:true});
+gl.addEventListener('touchmove',e=>{if(pin&&e.touches.length===2){e.preventDefault();const nd=td(e);if(pd>0)setZ(Z*nd/pd);pd=nd}},{passive:false});
+for(const t of ['touchend','touchcancel'])gl.addEventListener(t,e=>{if(e.touches.length<2)pd=0;if(e.touches.length===0)pin=false});
 $('z1').onclick=()=>setZ(Z/1.6);$('z2').onclick=()=>setZ(Z*1.6);
 $('g1').onclick=()=>{dragged=false;vl=lon;vt=Z>1?Math.max(-70,Math.min(70,lat)):25;renderGlobe()};
-$('g3').onclick=()=>{tzOn=!tzOn;$('g3').textContent=tzOn?'Kaistat':'Aikavyöhykkeet';$('gtx').textContent=tzOn?'Valkoiset viivat: aikavyöhykkeiden rajat (yksinkertaistettu). Luvut: talviajan aikaero UTC:hen (h). Eri sävyt erottavat naapurivyöhykkeet. Lähennä +-napilla, niin pienet vyöhykkeet näkyvät.':'Punainen piste: sijaintisi. Keltainen viiva: auringon reitti tänään. Piirit 15° välein; päiväntasaajan luvut: aikaero Greenwichiin (h). Pyöritä sormella. Lähennä +-napilla tai nipistämällä.';renderGlobe()};
-$('g2').onclick=()=>{dragged=true;vl=sunPos(new Date()).lon;renderGlobe()};
+$('g3').onclick=()=>{tzOn=!tzOn;$('g3').textContent=tzOn?'Kaistat':'Aikavyöhykkeet';$('gtx').textContent=tzOn?'Valkoiset viivat: aikavyöhykkeiden rajat (yksinkertaistettu), katkoviivat: piirit 15° välein, keltainen viiva: aurinkokeskipäivä (12:00). Luvut: talviajan aikaero UTC:hen (h). Eri sävyt erottavat naapurivyöhykkeet. Lähennä +-napilla, niin pienet vyöhykkeet näkyvät.':'Punainen piste: sijaintisi. Keltainen vaakaviiva: auringon reitti tänään; pystyviiva: aurinkokeskipäivä (12:00 aurinkoaika). Piirit 15° välein; päiväntasaajan luvut: aikaero Greenwichiin (h). Pyöritä sormella. Lähennä +-napilla tai nipistämällä.';renderGlobe()};
+
 renderGlobe();setInterval(renderGlobe,15000);
 drawCurve();tick();setInterval(tick,250);setInterval(drawCurve,60000);
 </script>
